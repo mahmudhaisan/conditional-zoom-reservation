@@ -91,8 +91,8 @@ function reservation_endpoint_contents($price) {
     // 2. Give warning if user don't have cradit. User will not be able to purchase.
     // 3. Give backend option to control credit. You can use product custom field.
 
-    if (isset($current_user_id)) {
-
+    if ($current_user_id) {
+        // echo $current_user_id;
         // product slug
         $zoom_product_slug = 'zoom-meeting';
 
@@ -109,11 +109,12 @@ function reservation_endpoint_contents($price) {
         $zoom_product_price = $zoom_product->get_regular_price();
 
         // if the user buy any package, then zoom product price will be zero
-        $price = 0;
+        $price = 6;
 
         return $price;
-
         // $members_activities = get_post_meta($membership_post_id, '_activities');
+    } else {
+        return $price;
     }
 }
 
