@@ -37,34 +37,8 @@ add_action('wp_enqueue_scripts', 'users_zoom_reservation_enqueue_files');
 
 
 
-/*
- * Step 1. Add Link (Tab) to My Account menu
- */
-add_filter('woocommerce_account_menu_items', 'reservation_add_links_account_page', 40);
-function reservation_add_links_account_page($menu_links) {
-    $menu_links = array_slice($menu_links, 0, 2, true)
-        + array('reservation-info' => 'Reservation')
-        + array_slice($menu_links, 2, NULL, true);
-    return $menu_links;
-}
-
-
-/*
- * Step 2. Register Permalink Endpoint
- */
-add_action('init', 'reservation_endpoints');
-function reservation_endpoints() {
-
-    add_rewrite_endpoint('reservation-info', EP_PAGES);
-}
-
-
-
-/*
- * Step 3. Content for the new page in My Account, woocommerce_account_{ENDPOINT NAME}_endpoint
- */
-add_action('woocommerce_account_reservation-info_endpoint', 'reservation_endpoint_contents');
-function reservation_endpoint_contents($price) {
+// woocommerce price filter callback
+function zoom_product_price_change_for_members($price) {
 
     // get current users id
     $current_user_id = wp_get_current_user()->ID;
@@ -80,20 +54,25 @@ function reservation_endpoint_contents($price) {
 
     foreach ($membership_posts as $membership_post) {
 
-        $membership_author_id = $membership_post->post_author;
+        $membership_author_id = intval($membership_post->post_author);
         if ($membership_author_id == $current_user_id) {
             $membership_post_id = $membership_post->ID;
-            $membership_status_field = $membership_post->post_name;
         }
     }
 
+
+
+    // var_dump($membership_posts);
     // 1. Decrease cradit on user appointment purchase. 
     // 2. Give warning if user don't have cradit. User will not be able to purchase.
     // 3. Give backend option to control credit. You can use product custom field.
 
     if ($current_user_id) {
-        // echo $current_user_id;
+
         // product slug
+        // var_dump($current_user_id);
+        // var_dump($membership_author_id);
+
         $zoom_product_slug = 'zoom-meeting';
 
         // get product info by product slug 
@@ -109,8 +88,35 @@ function reservation_endpoint_contents($price) {
         $zoom_product_price = $zoom_product->get_regular_price();
 
         // if the user buy any package, then zoom product price will be zero
-        $price = 6;
+        $price = $zoom_product_price  * 0;
 
+        // get total credit from array zero index 
+        $users_credit_info = get_post_meta($membership_post_id, '_credits')[0];
+
+        if ($membership_author_id == $current_user_id) {
+
+
+            // get all orders infos of current user
+            $customers_orders_infos = wc_get_orders(array(
+                'numberposts' => -1,
+                'status' => 'completed',
+                'author' => $current_user_id
+            ));
+
+            // Loop through each WC_Order object
+            foreach ($customers_orders_infos as $customers_order_info) {
+                $customers_order_id =  $customers_order_info->get_id() . '<br>'; // The order ID
+                $customers_order_status = $customers_order_info->get_status() . '<br>'; // The order status
+                echo $customers_order_id;
+                echo $customers_order_status;
+            }
+        }
+
+        echo '<pre>';
+        print_r($customers_orders_infos);
+        echo '</pre>';
+
+        // decrease_yith_credits_on_users_zoom_product_purchase();
         return $price;
         // $members_activities = get_post_meta($membership_post_id, '_activities');
     } else {
@@ -118,7 +124,68 @@ function reservation_endpoint_contents($price) {
     }
 }
 
-add_filter('woocommerce_get_price', 'reservation_endpoint_contents', 10, 2);
+// get woocommerce price filter
+add_filter('woocommerce_get_price', 'zoom_product_price_change_for_members', 10, 2);
 
 
-// $membership_post_meta = get_post_meta(, '_title');
+
+
+
+
+//Step 1. Add Link (Tab) to My Account menu
+
+add_filter('woocommerce_account_menu_items', 'reservation_add_links_account_page', 40);
+function reservation_add_links_account_page($menu_links) {
+    $menu_links = array_slice($menu_links, 0, 2, true)
+        + array('reservation-info' => 'Reservation')
+        + array_slice($menu_links, 2, NULL, true);
+    return $menu_links;
+}
+
+
+
+//* Step 2. Register Permalink Endpoint
+add_action('init', 'reservation_endpoints');
+function reservation_endpoints() {
+
+    add_rewrite_endpoint('reservation-info', EP_PAGES);
+}
+
+
+
+
+//Step 3. Content for the new page in My Account, woocommerce_account_{ENDPOINT NAME}_endpoint
+
+add_action('woocommerce_account_reservation-info_endpoint', 'membership_reservation_infos');
+
+function membership_reservation_infos() {
+
+?>
+
+
+    <div class="yith-wcmbs-membership-details">
+        <div class="yith-wcmbs-membership-detail yith-wcmbs-membership-detail--remaining-credits">
+            <div class="yith-wcmbs-membership-detail__title">Remaining Credits</div>
+            <div class="yith-wcmbs-membership-detail__value">2500</div>
+        </div>
+
+    </div>
+
+
+<?php
+}
+
+
+
+
+// Decrease cradit on user appointment purchase. 
+
+
+// function decrease_yith_credits_on_users_zoom_product_purchase() {
+//     $current_user_id = wp_get_current_user()->ID;
+
+  
+// }
+
+
+// decrease_yith_credits_on_users_zoom_product_purchase();
