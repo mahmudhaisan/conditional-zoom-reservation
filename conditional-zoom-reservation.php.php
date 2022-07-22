@@ -69,8 +69,6 @@ function zoom_product_price_change_for_members($price) {
 
     if ($current_user_id) {
 
-        // product slug
-        // var_dump($current_user_id);
         // var_dump($membership_author_id);
 
         $zoom_product_slug = 'zoom-meeting';
@@ -93,8 +91,9 @@ function zoom_product_price_change_for_members($price) {
         // get total credit from array zero index 
         $users_credit_info = get_post_meta($membership_post_id, '_credits')[0];
 
-        if ($membership_author_id == $current_user_id) {
 
+
+        if ($membership_author_id == $current_user_id) {
 
             // get all orders infos of current user
             $customers_orders_infos = wc_get_orders(array(
@@ -105,22 +104,36 @@ function zoom_product_price_change_for_members($price) {
 
             // Loop through each WC_Order object
             foreach ($customers_orders_infos as $customers_order_info) {
-                $customers_order_id =  $customers_order_info->get_id() . '<br>'; // The order ID
-                $customers_order_status = $customers_order_info->get_status() . '<br>'; // The order status
-                echo $customers_order_id;
-                echo $customers_order_status;
+                $customers_order_id = intval($customers_order_info->get_id()); // The order ID
+                $customers_order_status = $customers_order_info->get_status(); // The order status
+
+
+                global $wpdb;
+                $order_product_lookup = "SELECT `product_id` FROM `wp_wc_order_product_lookup` WHERE `order_id` = $customers_order_id";
+                $users_product_ids_based_on_order_id = $wpdb->get_results($order_product_lookup);
+                // echo 'break';
+                // echo $customers_order_id . '-';
+                $users_product_id = $users_product_ids_based_on_order_id[0]->product_id;
+                echo $users_product_id . ' ';
+
+                if ($zoom_product_id == $users_product_id) {
+                }
+
+
+                echo '<br> ';
             }
+
+
+
+
+            echo '<br> ';
+
+            // decrease_yith_credits_on_users_zoom_product_purchase();
+            return $price;
+            // $members_activities = get_post_meta($membership_post_id, '_activities');
+        } else {
+            return $price;
         }
-
-        echo '<pre>';
-        print_r($customers_orders_infos);
-        echo '</pre>';
-
-        // decrease_yith_credits_on_users_zoom_product_purchase();
-        return $price;
-        // $members_activities = get_post_meta($membership_post_id, '_activities');
-    } else {
-        return $price;
     }
 }
 
@@ -174,6 +187,7 @@ function membership_reservation_infos() {
 
 <?php
 }
+
 
 
 
