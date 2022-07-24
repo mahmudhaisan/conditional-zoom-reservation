@@ -40,37 +40,15 @@ add_action('wp_enqueue_scripts', 'users_zoom_reservation_enqueue_files');
 // woocommerce price filter callback
 function zoom_product_price_change_for_members($price) {
 
+    global $wpdb;
+
     // get current users id
     $current_user_id = wp_get_current_user()->ID;
 
-    // yith membership post type args
-    $membership_post_args = array(
-        'numberposts' => -1,
-        'post_type' => 'ywcmbs-membership'
-    );
-
-    // get yith membership post type full row
-    $membership_posts = get_posts($membership_post_args);
-
-    foreach ($membership_posts as $membership_post) {
-
-        $membership_author_id = intval($membership_post->post_author);
-        if ($membership_author_id == $current_user_id) {
-            $membership_post_id = $membership_post->ID;
-        }
-    }
-
-
-
-    // var_dump($membership_posts);
-    // 1. Decrease cradit on user appointment purchase. 
-    // 2. Give warning if user don't have cradit. User will not be able to purchase.
-    // 3. Give backend option to control credit. You can use product custom field.
-
+    // var_dump($current_user_id);
     if ($current_user_id) {
 
-        // var_dump($membership_author_id);
-
+        // var_dump($user_id_who_buy_membership);
         $zoom_product_slug = 'zoom-meeting';
 
         // get product info by product slug 
@@ -86,54 +64,148 @@ function zoom_product_price_change_for_members($price) {
         $zoom_product_price = $zoom_product->get_regular_price();
 
         // if the user buy any package, then zoom product price will be zero
-        $price = $zoom_product_price  * 0;
-
-        // get total credit from array zero index 
-        $users_credit_info = get_post_meta($membership_post_id, '_credits')[0];
+        $price = $zoom_product_price * 0;
 
 
+        // get yith membership plan lists
+        $membership_post_plan_args = array(
+            'numberposts' => -1,
+            'post_type' => 'yith-wcmbs-plan',
+        );
 
-        if ($membership_author_id == $current_user_id) {
-
-            // get all orders infos of current user
-            $customers_orders_infos = wc_get_orders(array(
-                'numberposts' => -1,
-                'status' => 'completed',
-                'author' => $current_user_id
-            ));
-
-            // Loop through each WC_Order object
-            foreach ($customers_orders_infos as $customers_order_info) {
-                $customers_order_id = intval($customers_order_info->get_id()); // The order ID
-                $customers_order_status = $customers_order_info->get_status(); // The order status
+        // get yith membership post type full row
+        $membership_posts_plan = get_posts($membership_post_plan_args);
 
 
-                global $wpdb;
-                $order_product_lookup = "SELECT `product_id` FROM `wp_wc_order_product_lookup` WHERE `order_id` = $customers_order_id";
-                $users_product_ids_based_on_order_id = $wpdb->get_results($order_product_lookup);
-                // echo 'break';
-                // echo $customers_order_id . '-';
-                $users_product_id = $users_product_ids_based_on_order_id[0]->product_id;
-                echo $users_product_id . ' ';
+        $membership_plan_arr = [];
+        $membership_total_credit_arr = [];
 
-                if ($zoom_product_id == $users_product_id) {
+        foreach ($membership_posts_plan as $membership_post_plan_info) {
+
+            $membership_post_plan_id =  $membership_post_plan_info->ID;
+            $membership_post_post_status =  $membership_post_plan_info->post_title;
+
+
+            $membership_total_credit = get_post_meta($membership_post_plan_id, '_download-limit')[0];
+            // var_dump($membership_total_credit);
+            array_push($membership_total_credit_arr, $membership_total_credit);
+            array_push($membership_plan_arr, $membership_post_post_status);
+            // array_push($membership_plan_arr, $membership_post_post_status);
+        }
+
+        var_dump($membership_total_credit_arr);
+        // var_dump($membership_plan_arr);
+
+
+        // get yith membership buy by users
+        $membership_post_args = array(
+            'numberposts' => -1,
+            'post_type' => 'ywcmbs-membership',
+
+        );
+
+        // get yith membership post type full row
+        $membership_posts = get_posts($membership_post_args);
+
+        // var_dump($membership_posts);
+        foreach ($membership_posts as $membership_post) {
+
+            $user_id_who_buy_membership = intval($membership_post->post_author);
+            $membership_post_title = $membership_post->post_title;
+
+            // var_dump($user_id_who_buy_membership);
+
+            if ($user_id_who_buy_membership == $current_user_id) {
+                $membership_post_id = $membership_post->ID;
+
+                $user_membership_package_title = $membership_post->post_title;
+
+                if ($membership_post_title == $user_membership_package_title) {
+
+                    // var_dump($membership_plan_arr);
+                    // var_dump($membership_post_title);
+
+
+                    //get array key by the package name
+                    $membership_plan_array_key_number_check_on_credit_arr = array_search($membership_post_title, $membership_plan_arr);
+
+                    var_dump($membership_plan_array_key_number_check_on_credit_arr);
+
+                    $users_packages_total_credit = intval($membership_total_credit_arr[$membership_plan_array_key_number_check_on_credit_arr]);
+                    var_dump($users_packages_total_credit);
+                    var_dump($membership_total_credit_arr);
+                    foreach ($membership_plan_arr as $membership_plan_item_title) {
+
+                        // var_dump($membership_plan_item_title);
+                        // var_dump($membership_post_id);
+                        // var_dump($user_id_who_buy_membership);
+                        // var_dump($membership_plan_item_title);
+                        // var_dump($membership_post_id);
+                    }
+                }
+
+                // var_dump($membership_post_id);
+                // var_dump($current_user_id);
+
+                // get all orders infos of current user
+                $customers_orders_infos = wc_get_orders(array(
+                    'numberposts' => -1,
+                    'status' => 'completed',
+                    'author' => $current_user_id
+                ));
+
+                // Loop through each WC_Order object
+                $users_product_id_array = [];
+
+                foreach ($customers_orders_infos as $customers_order_info) {
+
+                    // get customers order ids
+                    $customers_order_id = intval($customers_order_info->get_id());
+
+                    // The order status
+                    $customers_order_status = $customers_order_info->get_status();
+
+                    // get product id based on order ids
+                    $order_product_lookup = "SELECT `product_id` FROM `wp_wc_order_product_lookup` WHERE `order_id` = $customers_order_id";
+                    $users_product_ids_based_on_order_id = $wpdb->get_results($order_product_lookup);
+
+                    // echo $customers_order_id . '-';
+                    $users_product_id = $users_product_ids_based_on_order_id[0]->product_id;
+
+                    // storing product ids to an array
+                    array_push($users_product_id_array, $users_product_id);
                 }
 
 
-                echo '<br> ';
+                // count the specific product in an array
+                $total_users_bought_product_zoom = array_count_values($users_product_id_array);
+                $zoom_product_id_frequency = $total_users_bought_product_zoom[$zoom_product_id];
+
+                // var_dump($zoom_product_id_frequency);
+                // var_dump($membership_post_id);
+
+                // get total credit from array zero index 
+                $users_credit_info = intval(get_post_meta($membership_post_id, '_credits')[0]);
+
+                // _download-limit 
+                // var_dump($users_credit_info);
+
+                // users credit reduction value
+                $users_credit_reduction_on_zoom_product_purchase = 35;
+
+
+                // credit will be deducted on users zoom appoinment purchase
+                $users_credit_info_num  = $users_credit_info - ($zoom_product_id_frequency * $users_credit_reduction_on_zoom_product_purchase);
+
+                // var_dump($users_credit_info_num);
+
+
+                update_post_meta($membership_post_id, '_credits', $users_credit_info_num);
             }
-
-
-
-
-            echo '<br> ';
-
-            // decrease_yith_credits_on_users_zoom_product_purchase();
-            return $price;
-            // $members_activities = get_post_meta($membership_post_id, '_activities');
-        } else {
-            return $price;
         }
+        return $price;
+    } else {
+        return $price;
     }
 }
 
@@ -174,8 +246,6 @@ add_action('woocommerce_account_reservation-info_endpoint', 'membership_reservat
 function membership_reservation_infos() {
 
 ?>
-
-
     <div class="yith-wcmbs-membership-details">
         <div class="yith-wcmbs-membership-detail yith-wcmbs-membership-detail--remaining-credits">
             <div class="yith-wcmbs-membership-detail__title">Remaining Credits</div>
@@ -183,7 +253,6 @@ function membership_reservation_infos() {
         </div>
 
     </div>
-
 
 <?php
 }
