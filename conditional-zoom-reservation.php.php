@@ -91,9 +91,7 @@ function zoom_product_price_change_for_members($price) {
             array_push($membership_total_credit_arr, $membership_total_credit);
             array_push($membership_plan_arr, $membership_post_post_status);
             // array_push($membership_plan_arr, $membership_post_post_status);
-        }
-
-        var_dump($membership_total_credit_arr);
+        };
         // var_dump($membership_plan_arr);
 
 
@@ -122,30 +120,12 @@ function zoom_product_price_change_for_members($price) {
 
                 if ($membership_post_title == $user_membership_package_title) {
 
-                    // var_dump($membership_plan_arr);
-                    // var_dump($membership_post_title);
-
-
                     //get array key by the package name
                     $membership_plan_array_key_number_check_on_credit_arr = array_search($membership_post_title, $membership_plan_arr);
 
-                    var_dump($membership_plan_array_key_number_check_on_credit_arr);
-
                     $users_packages_total_credit = intval($membership_total_credit_arr[$membership_plan_array_key_number_check_on_credit_arr]);
                     var_dump($users_packages_total_credit);
-                    var_dump($membership_total_credit_arr);
-                    foreach ($membership_plan_arr as $membership_plan_item_title) {
-
-                        // var_dump($membership_plan_item_title);
-                        // var_dump($membership_post_id);
-                        // var_dump($user_id_who_buy_membership);
-                        // var_dump($membership_plan_item_title);
-                        // var_dump($membership_post_id);
-                    }
                 }
-
-                // var_dump($membership_post_id);
-                // var_dump($current_user_id);
 
                 // get all orders infos of current user
                 $customers_orders_infos = wc_get_orders(array(
@@ -181,25 +161,17 @@ function zoom_product_price_change_for_members($price) {
                 $total_users_bought_product_zoom = array_count_values($users_product_id_array);
                 $zoom_product_id_frequency = $total_users_bought_product_zoom[$zoom_product_id];
 
-                // var_dump($zoom_product_id_frequency);
-                // var_dump($membership_post_id);
 
                 // get total credit from array zero index 
                 $users_credit_info = intval(get_post_meta($membership_post_id, '_credits')[0]);
 
-                // _download-limit 
-                // var_dump($users_credit_info);
-
                 // users credit reduction value
                 $users_credit_reduction_on_zoom_product_purchase = 35;
 
-
                 // credit will be deducted on users zoom appoinment purchase
-                $users_credit_info_num  = $users_credit_info - ($zoom_product_id_frequency * $users_credit_reduction_on_zoom_product_purchase);
-
+                $users_credit_info_num  = $users_packages_total_credit - ($zoom_product_id_frequency * $users_credit_reduction_on_zoom_product_purchase);
+                var_dump($users_credit_info_num);
                 // var_dump($users_credit_info_num);
-
-
                 update_post_meta($membership_post_id, '_credits', $users_credit_info_num);
             }
         }
@@ -247,8 +219,8 @@ function membership_reservation_infos() {
 
 ?>
     <div class="yith-wcmbs-membership-details">
-        <div class="yith-wcmbs-membership-detail yith-wcmbs-membership-detail--remaining-credits">
-            <div class="yith-wcmbs-membership-detail__title">Remaining Credits</div>
+        <div class="yith-wcmbs-membership-detail yith-wcmbs-membership-detail--next-credits-update">
+            <div class="yith-wcmbs-membership-detail__title">Next credits update</div>
             <div class="yith-wcmbs-membership-detail__value">2500</div>
         </div>
 
