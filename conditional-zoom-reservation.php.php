@@ -62,168 +62,9 @@ function zoom_product_price_reduction() {
 
 
 
-// get yith membership plan lists
-function get_membership_plans_lists() {
-    // get yith membership plan lists
-    $membership_post_plan_args = array(
-        'numberposts' => -1,
-        'post_type' => 'yith-wcmbs-plan',
-    );
-
-    // get yith membership post type full row
-    $membership_posts_plan = get_posts($membership_post_plan_args);
-
-
-    $membership_plan_arr = [];
-    $membership_total_credit_arr = [];
-
-    foreach ($membership_posts_plan as $membership_post_plan_info) {
-
-        $membership_post_plan_id =  $membership_post_plan_info->ID;
-        $membership_post_post_status =  $membership_post_plan_info->post_title;
-
-
-        $membership_total_credit = get_post_meta($membership_post_plan_id, '_download-limit')[0];
-        // var_dump($membership_total_credit);
-        array_push($membership_total_credit_arr, $membership_total_credit);
-        array_push($membership_plan_arr, $membership_post_post_status);
-        // array_push($membership_plan_arr, $membership_post_post_status);
-    };
-
-    return array($membership_plan_arr, $membership_total_credit_arr);
-    // var_dump($membership_plan_arr);
-}
-
-
-
-
-// woocommerce price filter callback
-function zoom_product_price_change_for_members($price) {
-
-    global $wpdb;
-
-    // get current users id
-    $current_user_id = wp_get_current_user()->ID;
-
-    // var_dump($current_user_id);
-    if ($current_user_id) {
-
-        //zoom product reduction function
-        $zoom_product_price_reduction = zoom_product_price_reduction();
-        $price = $zoom_product_price_reduction[0];
-        $zoom_product_id = $zoom_product_price_reduction[1];
-
-        //membership plans lists function
-        $membership_plan_lists = get_membership_plans_lists();
-        $membership_plan_arr = $membership_plan_lists[0];
-        $membership_total_credit_arr = $membership_plan_lists[1];
-
-
-        // get yith membership buy by users
-        $membership_post_args = array(
-            'numberposts' => -1,
-            'post_type' => 'ywcmbs-membership',
-
-        );
-
-        // get yith membership post type full row
-        $membership_posts = get_posts($membership_post_args);
-
-        // var_dump($membership_posts);
-        foreach ($membership_posts as $membership_post) {
-
-
-
-            $user_id_who_buy_membership = intval($membership_post->post_author);
-            $membership_post_title = $membership_post->post_title;
-
-            // var_dump($user_id_who_buy_membership);
-
-            if ($user_id_who_buy_membership == $current_user_id) {
-                $membership_post_id = $membership_post->ID;
-
-                $user_membership_package_title = $membership_post->post_title;
-
-
-                //get array key by the package name
-                $membership_plan_array_key_number_check_on_credit_arr = array_search($membership_post_title, $membership_plan_arr);
-
-                // var_dump($membership_plan_arr);
-                $users_packages_total_credit = intval($membership_total_credit_arr[$membership_plan_array_key_number_check_on_credit_arr]);
-                // var_dump($users_packages_total_credit);
-
-
-
-
-                // get all orders infos of current user
-                $customers_orders_infos = wc_get_orders(array(
-                    'numberposts' => -1,
-                    'status' => 'completed',
-                    'author' => $current_user_id
-                ));
-
-                // Loop through each WC_Order object
-                $users_product_id_array = [];
-
-                foreach ($customers_orders_infos as $customers_order_info) {
-
-                    // get customers order ids
-                    $customers_order_id = intval($customers_order_info->get_id());
-
-                    // The order status
-                    $customers_order_status = $customers_order_info->get_status();
-
-                    // get product id based on order ids
-                    $order_product_lookup = "SELECT `product_id` FROM `wp_wc_order_product_lookup` WHERE `order_id` = $customers_order_id";
-                    $users_product_ids_based_on_order_id = $wpdb->get_results($order_product_lookup);
-
-                    // echo $customers_order_id . '-';
-                    $users_product_id = $users_product_ids_based_on_order_id[0]->product_id;
-
-                    // storing product ids to an array
-                    array_push($users_product_id_array, $users_product_id);
-                }
-
-
-                // count the specific product in an array
-                $total_users_bought_product_zoom = array_count_values($users_product_id_array);
-                $zoom_product_id_frequency = $total_users_bought_product_zoom[$zoom_product_id];
-
-                // get total credit from array zero index 
-                $users_credit_info = intval(get_post_meta($membership_post_id, '_credits')[0]);
-
-                // users credit reduction value
-                $users_credit_reduction_on_zoom_product_purchase = 35;
-
-                // credit will be deducted on users zoom appoinment purchase
-                $users_credit_info_num  = $users_packages_total_credit - ($zoom_product_id_frequency * $users_credit_reduction_on_zoom_product_purchase);
-                // global $users_credit_info_num;
-
-                var_dump($users_credit_info_num);
-                var_dump($membership_post_id);
-
-
-                // var_dump($users_credit_info_num);
-                update_post_meta($membership_post_id, '_credits', $users_credit_info_num);
-            }
-        }
-
-        return $price;
-    } else {
-        return $price;
-    }
-}
-
-
-
-
-// get woocommerce price filter
-add_filter('woocommerce_get_price', 'zoom_product_price_change_for_members', 10, 2);
-
 
 
 //Step 1. Add Link (Tab) to My Account menu
-
 add_filter('woocommerce_account_menu_items', 'reservation_add_links_account_page', 40);
 function reservation_add_links_account_page($menu_links) {
     $menu_links = array_slice($menu_links, 0, 2, true)
@@ -245,7 +86,6 @@ function reservation_endpoints() {
 
 
 //Step 3. Content for the new page in My Account, woocommerce_account_{ENDPOINT NAME}_endpoint
-
 add_action('woocommerce_account_reservation-info_endpoint', 'membership_reservation_infos');
 
 function membership_reservation_infos() {
@@ -272,8 +112,6 @@ function membership_reservation_infos() {
 
     // var_dump($membership_posts);
     foreach ($membership_posts as $membership_post) {
-
-
 
         $user_id_who_buy_membership = intval($membership_post->post_author);
         $membership_post_title = $membership_post->post_title;
@@ -302,21 +140,56 @@ function membership_reservation_infos() {
 
     </div>
 
-<?php
+    <?php
 }
 
 
 
+//conditional add to cart option hide
+function specific_product_add_to_cart_hide() {
+
+    // product id to add functionality
+    $product_id_array = [187, 185];
+
+    foreach ($product_id_array as $single_product_item_to_hide) {
+        global $post;
+        $current_post_url_id = $post->ID;
+        if ($current_post_url_id  == $single_product_item_to_hide) {
+    ?>
+            <style>
+                .elementor-add-to-cart.elementor-product-simple .cart {
+                    display: none !important;
+                }
+            </style>
+
+<?php
+        }
+    }
+}
+
+add_action('woocommerce_before_add_to_cart_form', 'specific_product_add_to_cart_hide');
 
 
-// Decrease cradit on user appointment purchase. 
 
 
-// function decrease_yith_credits_on_users_zoom_product_purchase() {
-//     $current_user_id = wp_get_current_user()->ID;
 
-  
-// }
+/**
+ * Register a custom menu page.
+ */
+function add_menu_to_wp_dashboard() {
+    add_menu_page(
+        __('Membership Zoom', 'zoomwooreservation'),
+        'Membership Zoom',
+        'manage_options',
+        'membership-zoom', // slug
+        'membership_zoom_cb', // callback
+        'dashicons-controls-repeat',
+        45
+    );
+}
+add_action('admin_menu', 'add_menu_to_wp_dashboard');
 
 
-// decrease_yith_credits_on_users_zoom_product_purchase();
+function membership_zoom_cb() {
+    echo 'hello';
+}
